@@ -2493,8 +2493,13 @@
           ctx.lineTo(x + tw * 0.62, baseY);
           ctx.closePath();
           ctx.fill();
-          // bark: vertical fissures and a knot, fixed per tree
-          var seedBase = Math.round(x * 3 + cameraX * 0.72);
+          // bark: vertical fissures and a knot, fixed per tree.
+          // The seed is anchored to the tree's world position
+          // (screen x with the parallax offset added back), not
+          // to the moving screen position: seeding from screen
+          // position re-rolled the detail every frame as the
+          // camera moved, which made the trees shimmer.
+          var seedBase = Math.round((x + cameraX * 0.72) * 3);
           ctx.strokeStyle = "rgba(43,28,12,0.55)";
           ctx.lineWidth = 1.3;
           for (var bk = 0; bk < 3; bk++) {
@@ -2521,8 +2526,9 @@
           ctx.moveTo(x, baseY - th + 1);
           ctx.lineTo(x + h * 0.02, baseY - h * 0.66);
           ctx.stroke();
-          // canopy: layered leaf clusters — a dark base mass,
-          // mid-tone clumps over it, then lit flecks on top
+          // canopy: layered leaf clusters — a dark base mass
+          // with mid-tone clumps over it, solid leaf colour
+          // only, no flecks or sparkle on top
           var clusters = [
             [0, -0.68, 0.30], [-0.22, -0.5, 0.22], [0.22, -0.5, 0.22],
             [-0.1, -0.6, 0.2], [0.12, -0.62, 0.19], [0, -0.5, 0.21]
@@ -2538,14 +2544,6 @@
             ctx.beginPath();
             ctx.arc(x + clusters[cj][0] * h - h * 0.035, baseY + clusters[cj][1] * h - h * 0.035,
                     clusters[cj][2] * h * 0.78, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.fillStyle = "rgba(150,210,115,0.5)";
-          for (var ck = 0; ck < 8; ck++) {
-            var lx = x + (hash(seedBase + ck * 13) - 0.62) * h * 0.52;
-            var ly = baseY - h * (0.52 + hash(seedBase + ck * 17) * 0.3);
-            ctx.beginPath();
-            ctx.arc(lx, ly, 2.4 * s + hash(seedBase + ck * 19) * 1.6, 0, Math.PI * 2);
             ctx.fill();
           }
         }
@@ -3072,9 +3070,15 @@
 
         // One sleeved arm for the climbing figure: from the
         // shoulder (sx, sy) to a hand gripping the rail at
-        // (hx, hy), the elbow bowed outward and the fist
-        // wrapped around the bar — knuckles over the top,
-        // finger lines curling over, a thumb pad below.
+        // (hx, hy), the elbow bowed outward. The hand is a real
+        // grip, not a plain circle: the back of the hand sits
+        // above the rail, four fingers curl over the bar as
+        // rounded bands wider than the rail, bowed as they
+        // wrap, with a shadow line under each, and the thumb
+        // hooks up the inside of the rail. The skin tones are
+        // the runner's own, sampled from the hands in his
+        // walk-cycle sprites (#a87058 family), so the hands
+        // match the rest of his body.
         function drawClimbArm(sx, sy, hx, hy) {
           var ex = (sx + hx) / 2 + (hx > 0 ? 6 : -6);
           var ey = (sy + hy) / 2 + 5;
@@ -3085,17 +3089,147 @@
           ctx.moveTo(sx, sy);
           ctx.quadraticCurveTo(ex, ey, hx, hy);
           ctx.stroke();
-          ctx.fillStyle = "#b0825e";
-          ctx.beginPath(); ctx.arc(hx, hy, 5.6, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = "rgba(74,48,30,0.6)";
-          ctx.lineWidth = 1.1;
-          for (var fi3 = -1; fi3 <= 1; fi3++) {
+          var side = hx > 0 ? 1 : -1;
+          // back of the hand, above and behind the fingers
+          ctx.fillStyle = "#a87058";
+          ctx.beginPath(); ctx.ellipse(hx, hy - 4.8, 6.4, 5.2, 0, 0, Math.PI * 2); ctx.fill();
+          // four fingers wrapped over the rail, top one first
+          for (var fg = 0; fg < 4; fg++) {
+            var fy = hy - 2.4 + fg * 2.9;
+            ctx.strokeStyle = "#a87058";
+            ctx.lineWidth = 2.7;
             ctx.beginPath();
-            ctx.arc(hx + fi3 * 2.4, hy - 2.2, 1.9, Math.PI * 1.05, Math.PI * 1.95);
+            ctx.moveTo(hx - 5.6, fy - 0.9);
+            ctx.quadraticCurveTo(hx, fy + 1.2, hx + 5.6, fy - 0.9);
+            ctx.stroke();
+            ctx.strokeStyle = "rgba(80,48,30,0.45)";
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(hx - 5.2, fy + 1.2);
+            ctx.quadraticCurveTo(hx, fy + 2.5, hx + 5.2, fy + 1.2);
             ctx.stroke();
           }
-          ctx.fillStyle = "#9a6f4c";
-          ctx.beginPath(); ctx.ellipse(hx + (hx > 0 ? 3 : -3), hy + 3.2, 2.2, 1.6, 0.5, 0, Math.PI * 2); ctx.fill();
+          // thumb hooked up the inside of the rail
+          ctx.strokeStyle = "#9c6750";
+          ctx.lineWidth = 2.7;
+          ctx.beginPath();
+          ctx.moveTo(hx - side * 4.4, hy + 6.6);
+          ctx.quadraticCurveTo(hx - side * 6.2, hy + 1.5, hx - side * 4.8, hy - 2.4);
+          ctx.stroke();
+        }
+
+        // The croucher, side profile facing his run direction:
+        // a real crouch drawn fresh each frame, the way the
+        // climber is drawn — every joint placed for the pose,
+        // never the standing figure scaled or tilted. Hips sit
+        // at about -50 (against -95 standing), both knees bend
+        // deep and push forward, the shins run back down to
+        // shoes planted flat on the ground, the torso folds
+        // compact over the thighs, one hand rests on the front
+        // knee, and the head tucks low just above the knees —
+        // about 112px tall overall, matching the lowered
+        // crouched collision (centre bottom-54). Skin tones
+        // match the walk-cycle sprites, as on the climbing
+        // hands.
+        function drawCroucher(cx, bottom) {
+          ctx.save();
+          if (invulnT > 0) ctx.globalAlpha = 0.45 + 0.3 * Math.sin(elapsed * 26);
+          ctx.translate(cx, bottom);
+          ctx.scale(player.facing, 1);
+
+          // Far side first: leg folded with its foot planted
+          // behind, arm hanging down beside the body.
+          drawCrouchLeg(-8, -48, 8, -27, -13, "#202b40");
+          drawCrouchArm(6, -79, 0, -52, -3, -18, "#24334f");
+
+          // Near leg: thigh from the low hip forward and down
+          // to a knee bent well ahead, shin back down to a
+          // flat-planted shoe.
+          drawCrouchLeg(2, -50, 30, -29, 13, "#26334d");
+
+          // Torso: the navy jacket folded forward over the
+          // thighs — shoulders low and ahead of the hips, back
+          // rounded, waistband at the hips.
+          var tg = ctx.createLinearGradient(0, -86, 0, -46);
+          tg.addColorStop(0, "#31456a");
+          tg.addColorStop(1, "#22314f");
+          ctx.fillStyle = tg;
+          ctx.beginPath();
+          ctx.moveTo(-15, -44);
+          ctx.quadraticCurveTo(-18, -68, 2, -82);
+          ctx.quadraticCurveTo(12, -89, 22, -82);
+          ctx.quadraticCurveTo(27, -64, 13, -44);
+          ctx.quadraticCurveTo(0, -39, -15, -44);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#1a2740";
+          ctx.fillRect(-14, -49, 28, 5);
+
+          // Head tucked low ahead of the shoulders: face in
+          // profile looking the way he faces, dark hair at the
+          // back, the navy cap's dome and brim on top.
+          ctx.fillStyle = "#9c6750";
+          ctx.fillRect(13, -90, 8, 9);
+          ctx.fillStyle = "#2b211b";
+          ctx.beginPath(); ctx.arc(21, -98, 12.3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#a87058";
+          ctx.beginPath(); ctx.arc(24.5, -95.5, 10.6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#9c6750";
+          ctx.beginPath(); ctx.arc(19.5, -94, 2.6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#241a12";
+          ctx.beginPath(); ctx.arc(31.5, -97, 1.4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#22355c";
+          ctx.beginPath(); ctx.arc(21.5, -99.5, 13, Math.PI, 0); ctx.fill();
+          ctx.fillRect(30, -101, 16, 3.4);
+          ctx.fillStyle = "#31456a";
+          ctx.beginPath(); ctx.arc(21.5, -112.5, 2.2, 0, Math.PI * 2); ctx.fill();
+
+          // Near arm over the torso, hand resting on the
+          // front knee.
+          drawCrouchArm(16, -80, 31, -57, 31, -31, "#2c3d5e");
+
+          ctx.restore();
+        }
+
+        // One leg of the crouch: navy trousers from the hip to
+        // a deeply bent knee to the ankle, then a shoe whose
+        // sole lies flat on the ground line, toe forward.
+        function drawCrouchLeg(hx, hy, kx, ky, ax, color) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 13;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(hx, hy);
+          ctx.lineTo(kx, ky);
+          ctx.lineTo(ax, -6);
+          ctx.stroke();
+          ctx.fillStyle = "#1d2a44";
+          ctx.beginPath();
+          ctx.moveTo(ax - 9, -2.2);
+          ctx.quadraticCurveTo(ax - 9.5, -9, ax - 2, -9.5);
+          ctx.lineTo(ax + 4, -8.2);
+          ctx.quadraticCurveTo(ax + 13, -7.2, ax + 13.5, -2.2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#e8e6df";
+          ctx.fillRect(ax - 9.5, -2.4, 23.5, 2.4);
+        }
+
+        // One sleeved arm of the crouch: shoulder to elbow to
+        // hand, the hand a fist in the sprite skin tone.
+        function drawCrouchArm(sx, sy, ex, ey, hx, hy, color) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 10.5;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.lineTo(hx, hy);
+          ctx.stroke();
+          ctx.fillStyle = "#a87058";
+          ctx.beginPath(); ctx.arc(hx, hy, 5.2, 0, Math.PI * 2); ctx.fill();
         }
 
         // A real ladder between two surfaces: two steel side
@@ -4385,13 +4519,14 @@
             if (shieldActive) drawShieldBubble(cx + (player.climbSway || 0), bottom - CHAR_H * 0.5);
             return;
           } else if (state === "playing" && player.crouching && player.grounded) {
-            // Crouched low: the standing frame squashed down toward
-            // the feet, so the whole body drops well below standing
-            // head height — low enough for flyers to pass over.
-            img = walkFrames[3];
-            footPad = WALK_FOOT_PAD[3];
-            squashY = 0.58;
-            lean = 0.04;
+            // Crouched: a real crouching pose drawn fresh each
+            // frame by drawCroucher — knees bent deep, hips
+            // dropped low, feet planted flat — never the
+            // standing frame squashed or tilted. Low enough for
+            // flyers to pass over, same as the collision says.
+            drawCroucher(cx, bottom);
+            if (shieldActive) drawShieldBubble(cx, bottom - 54);
+            return;
           } else if (state === "playing" && !player.grounded) {
             img = jumpSprite;
             lean = 0.12;
