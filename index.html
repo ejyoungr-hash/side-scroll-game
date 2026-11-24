@@ -157,6 +157,9 @@
       #startOverlay .diff-btn small { font-size: 0.66rem; margin-top: 0; }
       #startOverlay #diffDesc { min-height: 0; margin-bottom: 4px; }
       #startOverlay .btn-primary { min-height: 2.4rem; padding: 6px 28px; font-size: 0.98rem; position: sticky; bottom: 0; }
+      #startOverlay .orig-link { margin: 0 0 3px; font-size: 0.78rem; line-height: 1.25; }
+      #startOverlay .orig-link a { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+      #startOverlay .orig-link a:hover { color: var(--accent-dark); }
       .diff-label {
         font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
         text-transform: uppercase; color: var(--muted); margin: 4px 0 6px;
@@ -307,6 +310,7 @@
         <div class="overlay" id="startOverlay">
           <div class="panel">
             <h2>Moonlight Run</h2>
+            <p class="orig-link"><a href="https://cdn.jsdelivr.net/gh/ejyoungr-hash/side-scroll-game@1187e34c1a4540a8bd73e67981663ae338258f53/index.html" target="_blank" rel="noopener">Try the original version</a></p>
             <p>Ready to run? The character only moves when you do. Pick a difficulty — it applies to all four levels.</p>
             <div class="diff-label" id="diffLabel">Difficulty</div>
             <div class="diff-row" role="group" aria-labelledby="diffLabel">
